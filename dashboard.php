@@ -12,11 +12,10 @@ $user_id = $_SESSION['user_id'];
 
 // Fetch user's transactions along with gain_loss and tax
 $transactions_query = "
-    SELECT t.transaction_id, t.purchase_date, t.sell_date, t.total_investment, t.gain_loss, tf.irs_tax AS tax
-    FROM transactions t
-    JOIN transaction_fees tf ON t.transaction_id = tf.transaction_id
-    WHERE t.user_id = ?
-    ORDER BY t.purchase_date ASC
+    SELECT transaction_id, purchase_date, sell_date, total_investment, gain_loss, tax
+    FROM transactions
+    WHERE user_id = ?
+    ORDER BY purchase_date ASC
 ";
 
 $stmt = $conn->prepare($transactions_query);
@@ -36,11 +35,12 @@ if (!empty($transactions)) {
     $types = str_repeat('i', count($transaction_ids));
 
     $allocations_query = "
-        SELECT ta.transaction_id, ta.stock_ticker, ta.allocation_percentage, ta.allocation_amount, ta.gain_loss
+        SELECT ta.transaction_id, ta.stock_ticker, ta.allocation_amount, ta.gain_loss
         FROM transaction_allocations ta
-        WHERE ta.transaction_id IN ($placeholders) AND ta.allocation_percentage > 0
+        WHERE ta.transaction_id IN ($placeholders)
         ORDER BY ta.transaction_id ASC
     ";
+
 
     $stmt = $conn->prepare($allocations_query);
     $stmt->bind_param($types, ...$transaction_ids);
@@ -63,8 +63,7 @@ if (!empty($transactions)) {
         $total_gain_loss = 0;
 
         foreach ($transactions as $transaction) {
-            $adjusted_investment = $transaction['total_investment'] * 0.99; // Subtract 1% brokerage fee
-            $total_investment += $adjusted_investment;
+            $total_investment += $transaction['total_investment'];
             $total_tax += $transaction['tax'];
             $total_gain_loss += $transaction['gain_loss'];
         }
@@ -74,57 +73,45 @@ if (!empty($transactions)) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Head content remains the same -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Your Transactions</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Include any necessary scripts for the dropdown functionality -->
     <style>
-        /* Transactions Table */
         table {
             width: 90%;
             margin: 20px auto;
             border-collapse: collapse;
         }
-
         table thead {
             background-color: #007BFF;
             color: white;
         }
-
         table th, table td {
             padding: 10px;
             border: 1px solid #ddd;
             text-align: center;
         }
-
         table tr:nth-child(even) {
             background-color: #f9f9f9;
         }
-
         .transaction-row {
             cursor: pointer;
         }
-
         .arrow-cell {
             width: 20px;
             text-align: center;
             transition: transform 0.2s;
         }
-
         .transaction-row.expanded .arrow-cell {
             transform: rotate(90deg);
         }
-
         .allocation-table {
             display: none;
         }
-
         .allocation-table th, .allocation-table td {
             padding: 5px;
         }
-
         .total-row {
             font-weight: bold;
             background-color: #e0e0e0;
@@ -154,7 +141,7 @@ if (!empty($transactions)) {
             <table>
                 <thead>
                     <tr>
-                        <th></th> <!-- For the arrow indicator -->
+                        <th></th>
                         <th>Purchase Date</th>
                         <th>Sell Date</th>
                         <th>Total Investment ($)</th>
@@ -166,13 +153,12 @@ if (!empty($transactions)) {
                     <?php foreach ($transactions as $transaction): ?>
                         <?php
                         $transaction_id = $transaction['transaction_id'];
-                        $adjusted_investment = $transaction['total_investment'] * 0.99; // Subtract 1% brokerage fee
                         ?>
                         <tr id="transaction-row-<?php echo $transaction_id; ?>" class="transaction-row" onclick="toggleAllocations(<?php echo $transaction_id; ?>)">
                             <td class="arrow-cell">&#9658;</td>
                             <td><?php echo htmlspecialchars($transaction['purchase_date']); ?></td>
                             <td><?php echo htmlspecialchars($transaction['sell_date']); ?></td>
-                            <td><?php echo number_format($adjusted_investment, 2); ?></td>
+                            <td><?php echo number_format($transaction['total_investment'], 2); ?></td>
                             <td><?php echo number_format($transaction['tax'], 2); ?></td>
                             <td><?php echo number_format($transaction['gain_loss'], 2); ?></td>
                         </tr>
@@ -183,7 +169,6 @@ if (!empty($transactions)) {
                                         <thead>
                                             <tr>
                                                 <th>Stock Ticker</th>
-                                                <th>Allocation (%)</th>
                                                 <th>Allocation Amount ($)</th>
                                                 <th>Gain/Loss ($)</th>
                                             </tr>
@@ -192,7 +177,6 @@ if (!empty($transactions)) {
                                             <?php foreach ($allocations[$transaction_id] as $alloc): ?>
                                                 <tr>
                                                     <td><?php echo htmlspecialchars($alloc['stock_ticker']); ?></td>
-                                                    <td><?php echo number_format($alloc['allocation_percentage'], 2); ?></td>
                                                     <td><?php echo number_format($alloc['allocation_amount'], 2); ?></td>
                                                     <td><?php echo number_format($alloc['gain_loss'], 2); ?></td>
                                                 </tr>

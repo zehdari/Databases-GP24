@@ -1,25 +1,32 @@
 <?php
-require 'includes/db_connect.php';
+require 'includes/header.php'; // Include the header, which already starts the session
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = $_POST['password'];
-    $email = $_POST['email'];
 
+    // Hash the password
     $password_hash = password_hash($password, PASSWORD_BCRYPT);
 
-    $sql = "INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)";
+    // Prepare and execute the SQL statement
+    $sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sss", $username, $password_hash, $email);
+    $stmt->bind_param("ss", $username, $password_hash);
 
     if ($stmt->execute()) {
-        header("Location: login.php");
+        // Automatically log the user in after registration
+        $_SESSION['user_id'] = $stmt->insert_id; // Get the newly created user ID
+        $_SESSION['username'] = $username;
+
+        // Redirect to the index page
+        header("Location: index.php");
         exit;
     } else {
         $error = "Error: " . $stmt->error;
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php if (isset($error)) echo "<p style='color:red;'>$error</p>"; ?>
         <input type="text" name="username" placeholder="Username" required>
         <input type="password" name="password" placeholder="Password" required>
-        <input type="email" name="email" placeholder="Email" required>
         <button type="submit">Sign Up</button>
     </form>
 </body>

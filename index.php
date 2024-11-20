@@ -41,7 +41,7 @@ foreach ($stocks as $stock) {
                     <div class="dropdown-content">
                         <a href="dashboard.php">Dashboard</a>
                         <a href="create_order.php">Create Order</a>
-                        <a href="view_orders.php">View Orders</a>
+                        <!-- Removed the View Orders link -->
                         <a href="logout.php">Logout</a>
                     </div>
                 </div>

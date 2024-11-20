@@ -64,90 +64,99 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     if (empty($errors)) {
+        // Proceed to save the transaction
         try {
             // Begin transaction
             $conn->begin_transaction();
-    
+
             // Insert into transactions table
-            $stmt = $conn->prepare("INSERT INTO transactions (user_id, total_investment, fees, tax, gain_loss, purchase_date, sell_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            // Set default tax and gain/loss as 0 initially; they will be updated after processing allocations
-            $initial_gain_loss = 0;
-            $initial_tax = 0;
-            $stmt->bind_param('idddsss', $user_id, $total_investment, $brokerage_fee, $initial_tax, $initial_gain_loss, $purchase_date, $sell_date);
+            $stmt = $conn->prepare("INSERT INTO transactions (user_id, total_investment, purchase_date, sell_date) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param('idss', $user_id, $total_investment, $purchase_date, $sell_date);
             $stmt->execute();
-    
+            $stmt->close();
+
             // Get the last inserted transaction ID
             $transaction_id = $conn->insert_id;
-            $stmt->close();
-    
-            if (!$transaction_id) {
-                throw new Exception("Failed to insert transaction into database.");
-            }
-    
-            // Initialize total_gain_loss
-            $total_gain_loss = 0;
-    
-            // Prepare statements for allocations
-            $allocation_stmt = $conn->prepare("INSERT INTO transaction_allocations (transaction_id, stock_ticker, allocation_amount, gain_loss) VALUES (?, ?, ?, ?)");
+
+            // Prepare statements
+            $allocation_stmt = $conn->prepare("INSERT INTO transaction_allocations (transaction_id, stock_ticker, allocation_percentage, allocation_amount) VALUES (?, ?, ?, ?)");
             $price_stmt = $conn->prepare("SELECT closing_price FROM stocks WHERE stock_symbol = ? AND price_date = ?");
-    
+            $update_alloc_stmt = $conn->prepare("UPDATE transaction_allocations SET gain_loss = ? WHERE transaction_id = ? AND stock_ticker = ?");
+
+            $total_gain_loss = 0;
+
             foreach ($allocations as $stock => $allocation_percentage) {
                 $allocation_amount = ($allocation_percentage / 100) * $net_investment;
-    
+
+                // Insert allocation
+                $allocation_stmt->bind_param('isid', $transaction_id, $stock, $allocation_percentage, $allocation_amount);
+                $allocation_stmt->execute();
+
                 // Get purchase price
                 $price_stmt->bind_param('ss', $stock, $purchase_date);
                 $price_stmt->execute();
                 $price_result = $price_stmt->get_result();
                 $purchase_price_row = $price_result->fetch_assoc();
-    
+
                 // Get sell price
                 $price_stmt->bind_param('ss', $stock, $sell_date);
                 $price_stmt->execute();
                 $price_result = $price_stmt->get_result();
                 $sell_price_row = $price_result->fetch_assoc();
-    
+
                 if ($purchase_price_row && $sell_price_row) {
                     $purchase_price = $purchase_price_row['closing_price'];
                     $sell_price = $sell_price_row['closing_price'];
-    
+
                     // Calculate gain/loss per allocation
                     $quantity = $allocation_amount / $purchase_price;
                     $proceeds = $quantity * $sell_price;
                     $gain_loss = $proceeds - $allocation_amount;
-    
-                    // Insert allocation into the transaction_allocations table
-                    $allocation_stmt->bind_param('isdd', $transaction_id, $stock, $allocation_amount, $gain_loss);
-                    $allocation_stmt->execute();
-    
+
+                    // Update gain_loss in transaction_allocations table
+                    $update_alloc_stmt->bind_param('dis', $gain_loss, $transaction_id, $stock);
+                    $update_alloc_stmt->execute();
+
                     $total_gain_loss += $gain_loss;
                 } else {
+                    // Handle missing price data
                     $conn->rollback();
-                    throw new Exception('Price data not available for ' . $stock);
+                    $error = 'Price data not available for ' . $stock . ' on selected dates.';
+                    break;
                 }
             }
-    
-            // Calculate IRS tax (20% of total gain)
-            $irs_tax = $total_gain_loss > 0 ? 0.20 * $total_gain_loss : 0;
-    
-            // Calculate net gain/loss after taxes
-            $net_gain_loss = $total_gain_loss - $irs_tax;
-    
-            // Update the transaction with the final gain/loss and tax
-            $update_stmt = $conn->prepare("UPDATE transactions SET tax = ?, gain_loss = ? WHERE transaction_id = ?");
-            $update_stmt->bind_param('ddi', $irs_tax, $net_gain_loss, $transaction_id);
-            $update_stmt->execute();
-            $update_stmt->close();
-    
+
             // Close prepared statements
             $allocation_stmt->close();
             $price_stmt->close();
-    
-            // Commit transaction
-            $conn->commit();
-    
-            // Redirect to dashboard
-            header("Location: dashboard.php");
-            exit;
+            $update_alloc_stmt->close();
+
+            if (!isset($error)) {
+                // Calculate IRS tax (20% of gain)
+                $irs_tax = $total_gain_loss > 0 ? 0.20 * $total_gain_loss : 0;
+
+                // Insert into transaction_fees table
+                $fee_stmt = $conn->prepare("INSERT INTO transaction_fees (transaction_id, brokerage_fee, irs_tax) VALUES (?, ?, ?)");
+                $fee_stmt->bind_param('idd', $transaction_id, $brokerage_fee, $irs_tax);
+                $fee_stmt->execute();
+                $fee_stmt->close();
+
+                // Calculate net gain/loss after taxes
+                $net_gain_loss = $total_gain_loss - $irs_tax;
+
+                // Update gain_loss in transactions table
+                $update_trans_stmt = $conn->prepare("UPDATE transactions SET gain_loss = ? WHERE transaction_id = ?");
+                $update_trans_stmt->bind_param('di', $net_gain_loss, $transaction_id);
+                $update_trans_stmt->execute();
+                $update_trans_stmt->close();
+
+                // Commit transaction
+                $conn->commit();
+
+                // Redirect to dashboard
+                header("Location: dashboard.php");
+                exit;
+            }
         } catch (mysqli_sql_exception $e) {
             // Rollback transaction on error
             if ($conn->errno) {
@@ -155,9 +164,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             $error = 'Error saving order: ' . $e->getMessage();
         }
+    } else {
+        // Handle errors
+        $error = implode('<br>', $errors);
     }
-    
-      
 }
 ?>
 <!DOCTYPE html>

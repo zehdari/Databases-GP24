@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS stocks (
 CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,  
     username VARCHAR(50) NOT NULL UNIQUE,    
-    password_hash VARCHAR(255) NOT NULL,      
+    password_hash VARCHAR(255) NOT NULL     
 );
 
 -- Create the transactions table
@@ -60,7 +60,7 @@ CREATE TEMPORARY TABLE temp_stock_data (
 );
 
 -- Load data for stock symbol GOOGL
-LOAD DATA INFILE '/tmp/DB_Group_Project/GOOGL Historical Data.csv'
+LOAD DATA INFILE '/tmp/data/GOOGL Historical Data.csv'
 INTO TABLE temp_stock_data
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
@@ -84,7 +84,7 @@ FROM temp_stock_data;
 TRUNCATE TABLE temp_stock_data;
 
 -- Load data for stock symbol META
-LOAD DATA INFILE '/tmp/DB_Group_Project/META Historical Data.csv'
+LOAD DATA INFILE '/tmp/data/META Historical Data.csv'
 INTO TABLE temp_stock_data
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
@@ -108,7 +108,7 @@ FROM temp_stock_data;
 TRUNCATE TABLE temp_stock_data;
 
 -- Load data for stock symbol AAPL
-LOAD DATA INFILE '/tmp/DB_Group_Project/AAPL Historical Data.csv'
+LOAD DATA INFILE '/tmp/data/AAPL Historical Data.csv'
 INTO TABLE temp_stock_data
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
@@ -132,7 +132,7 @@ FROM temp_stock_data;
 TRUNCATE TABLE temp_stock_data;
 
 -- Load data for stock symbol AMZN
-LOAD DATA INFILE '/tmp/DB_Group_Project/AMZN Historical Data.csv'
+LOAD DATA INFILE '/tmp/data/AMZN Historical Data.csv'
 INTO TABLE temp_stock_data
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
