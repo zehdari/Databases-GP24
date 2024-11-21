@@ -1,10 +1,10 @@
 @echo off
 :: Define the source and destination directories
 set SOURCE_DIR=data
-set DEST_DIR=%TEMP%\data
+set DEST_DIR=C:\tempdata
 
 :: Define the SQL script file path
-set SQL_SCRIPT=utils\CreateDB.sql
+set SQL_SCRIPT=utils\CreateDBWindows.sql
 
 :: Define the CSV files to copy (space-separated list)
 set CSV_FILES="META Historical Data.csv" "AAPL Historical Data.csv" "GOOGL Historical Data.csv" "AMZN Historical Data.csv"
@@ -30,7 +30,7 @@ for %%F in (%CSV_FILES%) do (
 if exist "%SQL_SCRIPT%" (
     echo Running SQL script %SQL_SCRIPT%...
     echo Enter password for root:
-    mysql -u root -p < "%SQL_SCRIPT%"
+    mysql --local-infile=1 -u root -p < "%SQL_SCRIPT%"
     if not errorlevel 1 (
         echo Database setup complete.
     ) else (
