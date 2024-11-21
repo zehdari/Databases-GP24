@@ -1,5 +1,7 @@
 # Project Setup Instructions
 
+![Stock Investment Simulator](assets/stock_investment_simulator.png)
+
 ## 1. Run the Database Setup Script
 
 To set up the database, execute the following command:
