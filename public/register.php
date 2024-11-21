@@ -1,5 +1,5 @@
 <?php
-require 'includes/header.php'; // Include the header, which already starts the session
+require '../includes/header.php'; // Include the header, which already starts the session
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Retrieve and sanitize input

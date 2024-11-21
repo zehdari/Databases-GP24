@@ -2,7 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require 'includes/db_connect.php';
+require '../includes/db_connect.php';
 $is_logged_in = isset($_SESSION['user_id']);
 ?>
 <header>

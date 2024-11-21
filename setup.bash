@@ -35,7 +35,12 @@ if [ -f "$SQL_SCRIPT" ]; then
     echo "Running SQL script $SQL_SCRIPT..."
     echo "Enter password for root:"
     mysql -u root -p < "$SQL_SCRIPT"
-    echo "Database setup complete."
+    if [ $? -eq 0 ]; then
+        echo "Database setup complete."
+    else
+        echo "Error: Failed to run the SQL script."
+        exit 1
+    fi
 else
     echo "Error: SQL script $SQL_SCRIPT not found."
     exit 1

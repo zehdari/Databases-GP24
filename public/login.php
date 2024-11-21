@@ -1,5 +1,5 @@
 <?php
-require 'includes/header.php'; // Include the shared header
+require '../includes/header.php'; // Include the shared header
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];

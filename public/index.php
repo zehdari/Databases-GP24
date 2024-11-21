@@ -1,5 +1,5 @@
 <?php
-require 'includes/header.php';
+require '../includes/header.php';
 
 // Check if the user is logged in
 $is_logged_in = isset($_SESSION['user_id']);
