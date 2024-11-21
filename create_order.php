@@ -1,6 +1,5 @@
 <?php
-session_start();
-require 'includes/db_connect.php'; // Ensure this file initializes $conn
+require 'includes/header.php';
 
 // Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -59,8 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     foreach ($allocations as $stock => $allocation) {
         $total_allocation += floatval($allocation);
     }
-    if (round($total_allocation, 2) != 100.00) {
-        $errors[] = 'Total allocation must equal 100%.';
+
+    // Allow a small margin for floating-point precision
+    if (abs($total_allocation - $net_investment) > 0.01) {
+        $errors[] = 'Total allocation must equal the net investment amount ($' . number_format($net_investment, 2) . ').';
     }
 
     if (empty($errors)) {
@@ -70,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
             // Insert into transactions table
             $stmt = $conn->prepare("INSERT INTO transactions (user_id, total_investment, fees, tax, gain_loss, purchase_date, sell_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
+
             // Set default tax and gain/loss as 0 initially; they will be updated after processing allocations
             $initial_gain_loss = 0;
             $initial_tax = 0;
@@ -91,9 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $allocation_stmt = $conn->prepare("INSERT INTO transaction_allocations (transaction_id, stock_ticker, allocation_amount, gain_loss) VALUES (?, ?, ?, ?)");
             $price_stmt = $conn->prepare("SELECT closing_price FROM stocks WHERE stock_symbol = ? AND price_date = ?");
     
-            foreach ($allocations as $stock => $allocation_percentage) {
-                $allocation_amount = ($allocation_percentage / 100) * $net_investment;
-    
+            foreach ($allocations as $stock => $allocation_amount) {
+                $allocation_amount = floatval($allocation_amount);
+
                 // Get purchase price
                 $price_stmt->bind_param('ss', $stock, $purchase_date);
                 $price_stmt->execute();
@@ -156,41 +158,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error = 'Error saving order: ' . $e->getMessage();
         }
     }
-    
-      
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Head content remains the same -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Order</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Include Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Include flatpickr CSS and JS for date pickers -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body>
-    <?php require 'includes/header.php'; ?>
     <main class="dashboard">
         <h2 class="center-text">Create Order</h2>
         <?php if (isset($error)): ?>
-            <p class="error"><?php echo $error; ?></p>
+            <p class="error"><?php echo htmlspecialchars($error); ?></p>
         <?php endif; ?>
-        <!-- No need to check for $success since we redirect on success -->
         <form method="POST" action="create_order.php" class="order-form">
             <div class="input-group">
                 <label for="total_investment">Total Investment Amount ($):</label>
-                <input type="number" name="total_investment" id="total_investment" value="0.00" min="0.01" step="0.01" required>
+                <input type="number" name="total_investment" id="total_investment" value="100.00" min="0.01" step="0.01" required>
             </div>
 
             <div class="input-group">
-                <!-- Display fee and net investment amount -->
-                <small id="fee-and-net-display"></small>
+                <small id="fee-and-net-display">Brokerage Fee (1%): $1.00 | Net Investment Amount: $99.00</small>
             </div>
 
             <div class="input-group">
@@ -210,10 +204,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div id="sliders-container">
                 <?php foreach (['AAPL', 'AMZN', 'GOOGL', 'META'] as $stock): ?>
                     <div class="slider-group">
-                        <label for="slider-<?php echo $stock; ?>"><?php echo $stock; ?>:</label>
+                        <label for="slider-<?php echo $stock; ?>"><?php echo $stock; ?> ($):</label>
                         <input type="range" id="slider-<?php echo $stock; ?>" name="slider-<?php echo $stock; ?>" min="0" max="100" value="0" step="0.01">
-                        <input type="text" id="dollar-<?php echo $stock; ?>" class="allocation-dollar" value="">
-                        <span id="percent-<?php echo $stock; ?>">0.00%</span>
+                        <input type="number" id="dollar-<?php echo $stock; ?>" class="allocation-dollar" value="0.00" min="0" step="0.01">
+                        <span id="allocated-<?php echo $stock; ?>" class="allocated-display">$0.00</span>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -222,13 +216,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </form>
     </main>
     <script>
-        // JavaScript code
         const totalInvestmentInput = document.getElementById('total_investment');
         const feeAndNetDisplay = document.getElementById('fee-and-net-display');
         const stocks = ['AAPL', 'AMZN', 'GOOGL', 'META'];
         const sliders = stocks.map(stock => document.getElementById(`slider-${stock}`));
         const dollarInputs = stocks.map(stock => document.getElementById(`dollar-${stock}`));
-        const percentDisplays = stocks.map(stock => document.getElementById(`percent-${stock}`));
+        const allocatedDisplays = stocks.map(stock => document.getElementById(`allocated-${stock}`));
         const allocationsInput = document.getElementById('allocations-input');
         const submitButton = document.getElementById('submit-button');
         const ctx = document.getElementById('allocation-chart').getContext('2d');
@@ -244,12 +237,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         flatpickr(purchaseDateInput, {
             dateFormat: 'Y-m-d',
             enable: availableDates,
+            allowInput: true,
             onChange: validateForm
         });
 
         flatpickr(sellDateInput, {
             dateFormat: 'Y-m-d',
             enable: availableDates,
+            allowInput: true,
             onChange: validateForm
         });
 
@@ -257,10 +252,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         const chart = new Chart(ctx, {
             type: 'pie',
             data: {
-                labels: [...stocks, 'Unallocated'],
+                labels: stocks.concat(['Unallocated']),
                 datasets: [{
-                    data: [...sliders.map(slider => parseFloat(slider.value)), 100],
-                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#E0E0E0'] // Add gray for "Unallocated"
+                    data: stocks.map(() => 0).concat([0]),
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#E0E0E0']
                 }]
             },
             options: {
@@ -271,51 +266,97 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         });
 
+        let netInvestment = 0;
+
         function updateInvestmentDetails() {
             const totalInvestment = parseFloat(totalInvestmentInput.value) || 0;
             const brokerageFee = totalInvestment * 0.01;
-            const netInvestment = totalInvestment - brokerageFee;
+            netInvestment = totalInvestment - brokerageFee;
 
             feeAndNetDisplay.textContent = `Brokerage Fee (1%): $${brokerageFee.toFixed(2)} | Net Investment Amount: $${netInvestment.toFixed(2)}`;
+
+            // Update sliders' max to netInvestment
+            sliders.forEach(slider => {
+                slider.max = netInvestment.toFixed(2);
+            });
+
+            // Update dollar inputs' max to netInvestment
+            dollarInputs.forEach((input, index) => {
+            input.addEventListener('input', () => {
+                let dollarValue = input.value.trim() === '' ? 0 : parseFloat(input.value);
+
+                // Handle invalid input
+                if (isNaN(dollarValue) || dollarValue < 0) {
+                    input.value = sliders[index].value;
+                    return;
+                }
+
+                // Cap dollarValue to netInvestment
+                if (dollarValue > netInvestment) {
+                    dollarValue = netInvestment;
+                    input.value = dollarValue.toFixed(2);
+                }
+
+                // Calculate sum of other allocations
+                let otherAllocations = dollarInputs.reduce((sum, input, idx) => {
+                    return idx !== index ? sum + (parseFloat(input.value) || 0) : sum;
+                }, 0);
+
+                // Adjust dollarValue if total allocations exceed netInvestment
+                if (dollarValue + otherAllocations > netInvestment) {
+                    dollarValue = netInvestment - otherAllocations;
+                    dollarValue = dollarValue >= 0 ? dollarValue : 0;
+                    input.value = dollarValue.toFixed(2);
+                }
+
+                // Update slider and display
+                sliders[index].value = dollarValue.toFixed(2);
+                allocatedDisplays[index].textContent = `$${dollarValue.toFixed(2)}`;
+
+                updateSlidersAndChart(input);
+            });
+
+            // Add blur event to ensure formatting
+            input.addEventListener('blur', () => {
+                if (input.value.trim() === '') {
+                    input.value = '0.00';
+                } else {
+                    input.value = parseFloat(input.value).toFixed(2);
+                }
+            });
+        });
 
             return netInvestment;
         }
 
         function updateSlidersAndChart(sourceElement = null) {
-            const netInvestment = updateInvestmentDetails();
+            const currentNetInvestment = updateInvestmentDetails();
 
             let totalAllocation = sliders.reduce((sum, slider) => sum + parseFloat(slider.value), 0);
 
+            // If total allocation exceeds net investment, adjust the source slider
+            if (totalAllocation > currentNetInvestment && sourceElement) {
+                const excess = totalAllocation - currentNetInvestment;
+                const newValue = parseFloat(sourceElement.value) - excess;
+                sourceElement.value = newValue >= 0 ? newValue : 0;
+                totalAllocation = sliders.reduce((sum, slider) => sum + parseFloat(slider.value), 0);
+            }
+
+            // Update allocated displays and dollar inputs
             sliders.forEach((slider, index) => {
-                let percentage = parseFloat(slider.value);
-
-                // If moving the slider causes total to exceed 100%, adjust it
-                if ((sourceElement === slider || sourceElement === totalInvestmentInput) && totalAllocation > 100) {
-                    const excess = totalAllocation - 100;
-                    percentage = percentage - excess;
-                    if (percentage < 0) percentage = 0;
-                    slider.value = percentage;
-                    totalAllocation = 100; // Cap allocation
-                }
-
-                // Update percent display
-                percentDisplays[index].textContent = `${percentage.toFixed(2)}%`;
-
-                // Update dollar input if the change is not coming from the dollar input
-                if (sourceElement !== dollarInputs[index]) {
-                    const dollarAmount = ((percentage / 100) * netInvestment).toFixed(2); // Use net investment
-                    dollarInputs[index].value = netInvestment > 0 ? dollarAmount : '';
-                }
+                const allocation = parseFloat(slider.value) || 0;
+                dollarInputs[index].value = allocation.toFixed(2);
+                allocatedDisplays[index].textContent = `$${allocation.toFixed(2)}`;
             });
 
             // Update Chart.js data
-            const allocatedData = sliders.map(slider => parseFloat(slider.value));
-            const unallocated = Math.max(0, 100 - totalAllocation);
+            const allocatedData = sliders.map(slider => parseFloat(slider.value) || 0);
+            const unallocated = Math.max(0, currentNetInvestment - allocatedData.reduce((a, b) => a + b, 0));
             chart.data.datasets[0].data = [...allocatedData, unallocated];
             chart.update();
 
             // Update hidden input for backend
-            allocationsInput.value = JSON.stringify(Object.fromEntries(stocks.map((stock, index) => [stock, parseFloat(sliders[index].value)])));
+            allocationsInput.value = JSON.stringify(Object.fromEntries(stocks.map((stock, index) => [stock, parseFloat(sliders[index].value) || 0])));
 
             // Call validateForm at the end
             validateForm();
@@ -325,8 +366,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         function toggleAllocationInputs() {
-            const netInvestment = updateInvestmentDetails();
-
             const disabled = netInvestment <= 0;
 
             sliders.forEach(slider => {
@@ -339,18 +378,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         function dollarInputChanged(index) {
-            const inputValue = dollarInputs[index].value.trim();
-            const netInvestment = updateInvestmentDetails();
-
-            // Interpret empty input as zero
-            let dollarValue = inputValue === '' ? 0 : parseFloat(inputValue);
+            let dollarValue = parseFloat(dollarInputs[index].value) || 0;
 
             // Handle invalid input
             if (isNaN(dollarValue) || dollarValue < 0) {
                 alert('Please enter a valid number for the dollar amount.');
-                dollarInputs[index].value = '';
-                sliders[index].value = 0;
-                updateSlidersAndChart(dollarInputs[index]);
+                dollarInputs[index].value = sliders[index].value;
                 return;
             }
 
@@ -361,38 +394,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
 
             // Calculate sum of other allocations
-            let otherAllocations = 0;
-            dollarInputs.forEach((input, idx) => {
-                if (idx !== index) {
-                    const val = parseFloat(input.value) || 0;
-                    otherAllocations += val;
-                }
-            });
+            let otherAllocations = dollarInputs.reduce((sum, input, idx) => {
+                return idx !== index ? sum + (parseFloat(input.value) || 0) : sum;
+            }, 0);
 
             // Adjust dollarValue if total allocations exceed netInvestment
             if (dollarValue + otherAllocations > netInvestment) {
                 dollarValue = netInvestment - otherAllocations;
-                if (dollarValue < 0) {
-                    dollarValue = 0;
-                }
+                dollarValue = dollarValue >= 0 ? dollarValue : 0;
                 dollarInputs[index].value = dollarValue.toFixed(2);
             }
 
-            // Calculate percentage
-            const percentage = netInvestment > 0 ? (dollarValue / netInvestment) * 100 : 0;
-            const roundedPercentage = Math.round(percentage * 100) / 100; // Round percentage to two decimals
-            sliders[index].value = roundedPercentage;
+            // Update slider value
+            sliders[index].value = dollarValue.toFixed(2);
+            allocatedDisplays[index].textContent = `$${dollarValue.toFixed(2)}`;
+
             updateSlidersAndChart(dollarInputs[index]);
         }
 
         function validateForm() {
             // Check net investment amount
-            const netInvestment = updateInvestmentDetails();
             const investmentValid = netInvestment > 0.00;
 
             // Check total allocation
             const totalAllocation = sliders.reduce((sum, slider) => sum + parseFloat(slider.value), 0);
-            const allocationValid = Math.round(totalAllocation * 100) / 100 === 100;
+            const allocationValid = Math.abs(totalAllocation - netInvestment) < 0.01; // Allow small margin
 
             // Check dates
             const purchaseDate = purchaseDateInput.value;
@@ -425,8 +451,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             validateForm();
         });
 
-        sliders.forEach(slider =>
-            slider.addEventListener('input', event => updateSlidersAndChart(event.target))
+        sliders.forEach((slider, index) =>
+            slider.addEventListener('input', event => {
+                dollarInputs[index].value = parseFloat(event.target.value).toFixed(2);
+                allocatedDisplays[index].textContent = `$${parseFloat(event.target.value).toFixed(2)}`;
+                updateSlidersAndChart(event.target);
+            })
         );
 
         dollarInputs.forEach((input, index) => {
@@ -435,6 +465,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Initial update
         updateSlidersAndChart();
+
     </script>
 </body>
 </html>

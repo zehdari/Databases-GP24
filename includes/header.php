@@ -15,7 +15,6 @@ $is_logged_in = isset($_SESSION['user_id']);
                 <div class="dropdown-content">
                     <a href="dashboard.php">Dashboard</a>
                     <a href="create_order.php">Create Order</a>
-                    <a href="view_orders.php">View Orders</a>
                     <a href="logout.php">Logout</a>
                 </div>
             </div>

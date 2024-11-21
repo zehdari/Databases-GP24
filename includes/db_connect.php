@@ -1,8 +1,8 @@
 <?php
-$servername = "localhost"; // Or use 127.0.0.1
-$username = "root";        // Your MySQL username
-$password = "mysql";       // Your MySQL password
-$dbname = "GP24";          // Your database name
+$servername = "localhost"; 
+$username = "root";        
+$password = "mysql";       
+$dbname = "GP24";          
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

@@ -1,6 +1,5 @@
 <?php
-session_start();
-require 'includes/db_connect.php'; // This should initialize $conn
+require 'includes/header.php';
 
 // Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -37,10 +36,9 @@ if (!empty($transactions)) {
     $allocations_query = "
         SELECT ta.transaction_id, ta.stock_ticker, ta.allocation_amount, ta.gain_loss
         FROM transaction_allocations ta
-        WHERE ta.transaction_id IN ($placeholders)
+        WHERE ta.transaction_id IN ($placeholders) AND ta.allocation_amount > 0
         ORDER BY ta.transaction_id ASC
     ";
-
 
     $stmt = $conn->prepare($allocations_query);
     $stmt->bind_param($types, ...$transaction_ids);
@@ -62,11 +60,16 @@ if (!empty($transactions)) {
         $total_tax = 0;
         $total_gain_loss = 0;
 
-        foreach ($transactions as $transaction) {
+        foreach ($transactions as &$transaction) {
+            // Subtract 1% fee from total investment
+            $fee = $transaction['total_investment'] * 0.01;
+            $transaction['net_investment'] = $transaction['total_investment'] - $fee;
+
             $total_investment += $transaction['total_investment'];
             $total_tax += $transaction['tax'];
             $total_gain_loss += $transaction['gain_loss'];
         }
+        unset($transaction); // Break the reference
     }
 }
 ?>
@@ -78,44 +81,7 @@ if (!empty($transactions)) {
     <title>Dashboard - Your Transactions</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        table {
-            width: 90%;
-            margin: 20px auto;
-            border-collapse: collapse;
-        }
-        table thead {
-            background-color: #007BFF;
-            color: white;
-        }
-        table th, table td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-        table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .transaction-row {
-            cursor: pointer;
-        }
-        .arrow-cell {
-            width: 20px;
-            text-align: center;
-            transition: transform 0.2s;
-        }
-        .transaction-row.expanded .arrow-cell {
-            transform: rotate(90deg);
-        }
-        .allocation-table {
-            display: none;
-        }
-        .allocation-table th, .allocation-table td {
-            padding: 5px;
-        }
-        .total-row {
-            font-weight: bold;
-            background-color: #e0e0e0;
-        }
+        
     </style>
     <script>
         function toggleAllocations(transactionId) {
@@ -132,7 +98,6 @@ if (!empty($transactions)) {
     </script>
 </head>
 <body>
-    <?php require 'includes/header.php'; ?>
     <main class="dashboard">
         <h2 class="center-text">Your Transactions</h2>
         <?php if (empty($transactions)): ?>
@@ -145,6 +110,8 @@ if (!empty($transactions)) {
                         <th>Purchase Date</th>
                         <th>Sell Date</th>
                         <th>Total Investment ($)</th>
+                        <th>1% Fee ($)</th>
+                        <th>Net Investment ($)</th>
                         <th>Tax ($)</th>
                         <th>Gain/Loss ($)</th>
                     </tr>
@@ -153,18 +120,23 @@ if (!empty($transactions)) {
                     <?php foreach ($transactions as $transaction): ?>
                         <?php
                         $transaction_id = $transaction['transaction_id'];
+                        $fee = $transaction['total_investment'] * 0.01;
+                        $net_investment = $transaction['total_investment'] - $fee;
+                        $transaction_allocations = isset($allocations[$transaction_id]) ? $allocations[$transaction_id] : [];
                         ?>
                         <tr id="transaction-row-<?php echo $transaction_id; ?>" class="transaction-row" onclick="toggleAllocations(<?php echo $transaction_id; ?>)">
                             <td class="arrow-cell">&#9658;</td>
                             <td><?php echo htmlspecialchars($transaction['purchase_date']); ?></td>
                             <td><?php echo htmlspecialchars($transaction['sell_date']); ?></td>
                             <td><?php echo number_format($transaction['total_investment'], 2); ?></td>
+                            <td><?php echo number_format($fee, 2); ?></td>
+                            <td><?php echo number_format($net_investment, 2); ?></td>
                             <td><?php echo number_format($transaction['tax'], 2); ?></td>
                             <td><?php echo number_format($transaction['gain_loss'], 2); ?></td>
                         </tr>
-                        <?php if (isset($allocations[$transaction_id])): ?>
+                        <?php if (!empty($transaction_allocations)): ?>
                             <tr id="allocations-<?php echo $transaction_id; ?>" class="allocation-table">
-                                <td colspan="6">
+                                <td colspan="8">
                                     <table>
                                         <thead>
                                             <tr>
@@ -174,7 +146,7 @@ if (!empty($transactions)) {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach ($allocations[$transaction_id] as $alloc): ?>
+                                            <?php foreach ($transaction_allocations as $alloc): ?>
                                                 <tr>
                                                     <td><?php echo htmlspecialchars($alloc['stock_ticker']); ?></td>
                                                     <td><?php echo number_format($alloc['allocation_amount'], 2); ?></td>
@@ -191,12 +163,15 @@ if (!empty($transactions)) {
                         <tr class="total-row">
                             <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
                             <td><?php echo number_format($total_investment, 2); ?></td>
+                            <td><?php echo number_format($total_investment * 0.01, 2); ?></td>
+                            <td><?php echo number_format($total_investment * 0.99, 2); ?></td>
                             <td><?php echo number_format($total_tax, 2); ?></td>
                             <td><?php echo number_format($total_gain_loss, 2); ?></td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
+            <p class="fee-info">Note: A 1% transaction fee has been deducted from the total investment amount.</p>
         <?php endif; ?>
     </main>
 </body>
