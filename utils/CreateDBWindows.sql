@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS transaction_allocations (
 
 SET GLOBAL local_infile=1;
 -- Load GOOGL data
-LOAD DATA LOCAL INFILE 'C:/tempdata/GOOGL Historical Data.csv'
+LOAD DATA INFILE 'C:/tempdata/GOOGL Historical Data.csv'
 INTO TABLE stocks
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
@@ -68,7 +68,7 @@ SET
     change_percentage = @change_percentage;
 
 -- Load META data
-LOAD DATA LOCAL INFILE 'C:/tempdata/META Historical Data.csv'
+LOAD DATA INFILE 'C:/tempdata/META Historical Data.csv'
 INTO TABLE stocks
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
@@ -86,7 +86,7 @@ SET
     change_percentage = @change_percentage;
 
 -- Load AAPL data
-LOAD DATA LOCAL INFILE 'C:/tempdata/AAPL Historical Data.csv'
+LOAD DATA INFILE 'C:/tempdata/AAPL Historical Data.csv'
 INTO TABLE stocks
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
@@ -104,7 +104,7 @@ SET
     change_percentage = @change_percentage;
 
 -- Load AMZN data
-LOAD DATA LOCAL INFILE 'C:/tempdata/AMZN Historical Data.csv'
+LOAD DATA INFILE 'C:/tempdata/AMZN Historical Data.csv'
 INTO TABLE stocks
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
