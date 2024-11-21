@@ -4,8 +4,16 @@
 
 To set up the database, execute the following command:
 
+### For MacOS/Linux
+
 ```bash
 bash setup.bash
+```
+
+### For Windows
+
+```bash
+setup.bat
 ```
 
 ## 2. Restart the PHP Server
