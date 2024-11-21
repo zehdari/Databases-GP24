@@ -61,96 +61,72 @@ CREATE TEMPORARY TABLE temp_stock_data (
 
 -- Load data for stock symbol GOOGL
 LOAD DATA INFILE '/tmp/data/GOOGL Historical Data.csv'
-INTO TABLE temp_stock_data
+INTO TABLE stocks
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
-IGNORE 1 ROWS;
-
--- Insert data into the stocks table for GOOGL
-INSERT INTO stocks (stock_symbol, price_date, closing_price, open_price, high_price, low_price, volume, change_percentage)
-SELECT
-    'GOOGL' AS stock_symbol,
-    STR_TO_DATE(price_date, '%m/%d/%Y') AS price_date,
-    REPLACE(closing_price, ',', '') AS closing_price,
-    REPLACE(open_price, ',', '') AS open_price,
-    REPLACE(high_price, ',', '') AS high_price,
-    REPLACE(low_price, ',', '') AS low_price,
-    volume,
-    change_percentage
-FROM temp_stock_data;
-
--- Clear the temporary table
-TRUNCATE TABLE temp_stock_data;
+IGNORE 1 ROWS
+(@price_date, @closing_price, @open_price, @high_price, @low_price, @volume, @change_percentage)
+SET
+    stock_symbol = 'GOOGL',
+    price_date = STR_TO_DATE(@price_date, '%m/%d/%Y'),
+    closing_price = REPLACE(@closing_price, ',', ''),
+    open_price = REPLACE(@open_price, ',', ''),
+    high_price = REPLACE(@high_price, ',', ''),
+    low_price = REPLACE(@low_price, ',', ''),
+    volume = @volume,
+    change_percentage = @change_percentage;
 
 -- Load data for stock symbol META
 LOAD DATA INFILE '/tmp/data/META Historical Data.csv'
-INTO TABLE temp_stock_data
+INTO TABLE stocks
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
-IGNORE 1 ROWS;
-
--- Insert data into the stocks table for META
-INSERT INTO stocks (stock_symbol, price_date, closing_price, open_price, high_price, low_price, volume, change_percentage)
-SELECT
-    'META' AS stock_symbol,
-    STR_TO_DATE(price_date, '%m/%d/%Y') AS price_date,
-    REPLACE(closing_price, ',', '') AS closing_price,
-    REPLACE(open_price, ',', '') AS open_price,
-    REPLACE(high_price, ',', '') AS high_price,
-    REPLACE(low_price, ',', '') AS low_price,
-    volume,
-    change_percentage
-FROM temp_stock_data;
-
--- Clear the temporary table
-TRUNCATE TABLE temp_stock_data;
+IGNORE 1 ROWS
+(@price_date, @closing_price, @open_price, @high_price, @low_price, @volume, @change_percentage)
+SET
+    stock_symbol = 'META',
+    price_date = STR_TO_DATE(@price_date, '%m/%d/%Y'),
+    closing_price = REPLACE(@closing_price, ',', ''),
+    open_price = REPLACE(@open_price, ',', ''),
+    high_price = REPLACE(@high_price, ',', ''),
+    low_price = REPLACE(@low_price, ',', ''),
+    volume = @volume,
+    change_percentage = @change_percentage;
 
 -- Load data for stock symbol AAPL
 LOAD DATA INFILE '/tmp/data/AAPL Historical Data.csv'
-INTO TABLE temp_stock_data
+INTO TABLE stocks
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
-IGNORE 1 ROWS;
-
--- Insert data into the stocks table for AAPL
-INSERT INTO stocks (stock_symbol, price_date, closing_price, open_price, high_price, low_price, volume, change_percentage)
-SELECT
-    'AAPL' AS stock_symbol,
-    STR_TO_DATE(price_date, '%m/%d/%Y') AS price_date,
-    REPLACE(closing_price, ',', '') AS closing_price,
-    REPLACE(open_price, ',', '') AS open_price,
-    REPLACE(high_price, ',', '') AS high_price,
-    REPLACE(low_price, ',', '') AS low_price,
-    volume,
-    change_percentage
-FROM temp_stock_data;
-
--- Clear the temporary table
-TRUNCATE TABLE temp_stock_data;
+IGNORE 1 ROWS
+(@price_date, @closing_price, @open_price, @high_price, @low_price, @volume, @change_percentage)
+SET
+    stock_symbol = 'AAPL',
+    price_date = STR_TO_DATE(@price_date, '%m/%d/%Y'),
+    closing_price = REPLACE(@closing_price, ',', ''),
+    open_price = REPLACE(@open_price, ',', ''),
+    high_price = REPLACE(@high_price, ',', ''),
+    low_price = REPLACE(@low_price, ',', ''),
+    volume = @volume,
+    change_percentage = @change_percentage;
 
 -- Load data for stock symbol AMZN
 LOAD DATA INFILE '/tmp/data/AMZN Historical Data.csv'
-INTO TABLE temp_stock_data
+INTO TABLE stocks
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
-IGNORE 1 ROWS;
-
--- Insert data into the stocks table for AMZN
-INSERT INTO stocks (stock_symbol, price_date, closing_price, open_price, high_price, low_price, volume, change_percentage)
-SELECT
-    'AMZN' AS stock_symbol,
-    STR_TO_DATE(price_date, '%m/%d/%Y') AS price_date,
-    REPLACE(closing_price, ',', '') AS closing_price,
-    REPLACE(open_price, ',', '') AS open_price,
-    REPLACE(high_price, ',', '') AS high_price,
-    REPLACE(low_price, ',', '') AS low_price,
-    volume,
-    change_percentage
-FROM temp_stock_data;
-
--- Drop the temporary table
-DROP TEMPORARY TABLE temp_stock_data;
+IGNORE 1 ROWS
+(@price_date, @closing_price, @open_price, @high_price, @low_price, @volume, @change_percentage)
+SET
+    stock_symbol = 'AMZN',
+    price_date = STR_TO_DATE(@price_date, '%m/%d/%Y'),
+    closing_price = REPLACE(@closing_price, ',', ''),
+    open_price = REPLACE(@open_price, ',', ''),
+    high_price = REPLACE(@high_price, ',', ''),
+    low_price = REPLACE(@low_price, ',', ''),
+    volume = @volume,
+    change_percentage = @change_percentage;
