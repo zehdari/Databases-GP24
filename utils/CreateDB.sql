@@ -48,17 +48,6 @@ CREATE TABLE IF NOT EXISTS transaction_allocations (
     FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
 );
 
--- Create a temporary table to load the CSV data
-CREATE TEMPORARY TABLE temp_stock_data (
-    price_date VARCHAR(20),
-    closing_price VARCHAR(20),
-    open_price VARCHAR(20),
-    high_price VARCHAR(20),
-    low_price VARCHAR(20),
-    volume VARCHAR(20),
-    change_percentage VARCHAR(20)
-);
-
 -- Load data for stock symbol GOOGL
 LOAD DATA INFILE '/tmp/data/GOOGL Historical Data.csv'
 INTO TABLE stocks
