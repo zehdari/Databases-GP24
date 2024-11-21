@@ -16,7 +16,7 @@ bash setup.bash
 setup.bat
 ```
 
-## 2. Restart the PHP Server
+## 2. Start the PHP Server
 
 Start the PHP development server with the following command:
 
