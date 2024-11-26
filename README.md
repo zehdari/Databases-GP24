@@ -32,8 +32,8 @@ Open your browser and navigate to:
 
 ## Member Contributions
 
-**Cameron Tucker**: Developed the application, including the PHP, JavaScript, HTML, and CSS. Wrote the majority of the SQL queries and managed the overall functionality. Created the setup scripts and worked collaboratively with Jia to confirm the page structure and refine the SQL implementation.
+**Cameron Tucker**: Developed the application, including the PHP, JavaScript, HTML, and CSS. Wrote the majority of the SQL queries and managed the overall functionality. Created the setup scripts and validated the application with testing.
 
-**JiaCheng Xue**: Initiated group communication and collaboration. Assisted with SQL preparation and validation. Tested the setup scripts and provided input on finalizing the page structure to ensure alignment with project requirements.
+**JiaCheng Xue**: 
 
-**Saleh Zakzok**: No contact, no contribution to the project.
+**Saleh Zakzok**: 
