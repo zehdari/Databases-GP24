@@ -131,12 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Calculate IRS tax (20% of total gain)
             $irs_tax = $total_gain_loss > 0 ? 0.20 * $total_gain_loss : 0;
     
-            // Calculate net gain/loss after taxes
-            $net_gain_loss = $total_gain_loss - $irs_tax;
-    
             // Update the transaction with the final gain/loss and tax
             $update_stmt = $conn->prepare("UPDATE transactions SET tax = ?, gain_loss = ? WHERE transaction_id = ?");
-            $update_stmt->bind_param('ddi', $irs_tax, $net_gain_loss, $transaction_id);
+            $update_stmt->bind_param('ddi', $irs_tax, $total_gain_loss, $transaction_id);
             $update_stmt->execute();
             $update_stmt->close();
     
