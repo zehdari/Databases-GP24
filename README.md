@@ -34,6 +34,6 @@ Open your browser and navigate to:
 
 **Cameron Tucker**: Developed the application, including the PHP, JavaScript, HTML, and CSS. Wrote the majority of the SQL queries and managed the overall functionality. Created the setup scripts and validated the application with testing.
 
-**JiaCheng Xue**: 
+**JiaCheng Xue**:  Developed the application part of PHP; testing installment and functionality of application on Windows environment. 
 
 **Saleh Zakzok**: 
