@@ -59,15 +59,20 @@ if (!empty($transactions)) {
         $total_investment = 0;
         $total_tax = 0;
         $total_gain_loss = 0;
+        $total_post_tax_gain_loss = 0;
 
         foreach ($transactions as &$transaction) {
             // Subtract 1% fee from total investment
             $fee = $transaction['total_investment'] * 0.01;
             $transaction['net_investment'] = $transaction['total_investment'] - $fee;
 
+            // Calculate post-tax gain/loss
+            $transaction['post_tax_gain_loss'] = $transaction['gain_loss'] - $transaction['tax'];
+
             $total_investment += $transaction['total_investment'];
             $total_tax += $transaction['tax'];
             $total_gain_loss += $transaction['gain_loss'];
+            $total_post_tax_gain_loss += $transaction['post_tax_gain_loss'];
         }
         unset($transaction); // Break the reference
     }
@@ -113,7 +118,8 @@ if (!empty($transactions)) {
                         <th>1% Fee ($)</th>
                         <th>Net Investment ($)</th>
                         <th>Tax ($)</th>
-                        <th>Gain/Loss ($)</th>
+                        <th>Gain/Loss Pre-Tax ($)</th>
+                        <th>Gain/Loss Post-Tax ($)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -122,6 +128,7 @@ if (!empty($transactions)) {
                         $transaction_id = $transaction['transaction_id'];
                         $fee = $transaction['total_investment'] * 0.01;
                         $net_investment = $transaction['total_investment'] - $fee;
+                        $post_tax_gain_loss = $transaction['gain_loss'] - $transaction['tax'];
                         $transaction_allocations = isset($allocations[$transaction_id]) ? $allocations[$transaction_id] : [];
                         ?>
                         <tr id="transaction-row-<?php echo $transaction_id; ?>" class="transaction-row" onclick="toggleAllocations(<?php echo $transaction_id; ?>)">
@@ -133,10 +140,11 @@ if (!empty($transactions)) {
                             <td><?php echo number_format($net_investment, 2); ?></td>
                             <td><?php echo number_format($transaction['tax'], 2); ?></td>
                             <td><?php echo number_format($transaction['gain_loss'], 2); ?></td>
+                            <td><?php echo number_format($post_tax_gain_loss, 2); ?></td>
                         </tr>
                         <?php if (!empty($transaction_allocations)): ?>
                             <tr id="allocations-<?php echo $transaction_id; ?>" class="allocation-table">
-                                <td colspan="8">
+                                <td colspan="9">
                                     <table>
                                         <thead>
                                             <tr>
@@ -167,11 +175,12 @@ if (!empty($transactions)) {
                             <td><?php echo number_format($total_investment * 0.99, 2); ?></td>
                             <td><?php echo number_format($total_tax, 2); ?></td>
                             <td><?php echo number_format($total_gain_loss, 2); ?></td>
+                            <td><?php echo number_format($total_post_tax_gain_loss, 2); ?></td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
-            <p class="fee-info">Note: A 1% transaction fee has been deducted from the total investment amount.</p>
+            <p class="fee-info">Note: A 1% transaction fee has been deducted from the total investment amount. Post-tax gain/loss is calculated by subtracting the tax amount from the pre-tax gain/loss.</p>
         <?php endif; ?>
     </main>
 </body>

@@ -29,4 +29,3 @@ php -S localhost:8000 -t public
 Open your browser and navigate to:
 
 [http://localhost:8000/index.php](http://localhost:8000/index.php)
-
