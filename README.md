@@ -36,4 +36,4 @@ Open your browser and navigate to:
 
 **JiaCheng Xue**:  Developed the application part of PHP; testing installment and functionality of application on Windows environment. 
 
-**Saleh Zakzok**: 
+**Saleh Zakzok**: Tested the application once completed by testing edge cases and attempting to break the application.
