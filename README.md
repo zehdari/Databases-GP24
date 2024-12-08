@@ -1,5 +1,10 @@
 # Project Setup Instructions
 
+## ALTERNATIVE
+
+To set up the DB without the .bat script, the SQL setup file for relative folders (i.e. "../data/AAPL Historical Data.csv") is in utils/CreateDBWindowsNobat.sql
+Run the sql script, then proceed to step 2.
+
 ## 1. Run the Database Setup Script
 
 To set up the database, execute the following command:
@@ -34,6 +39,6 @@ Open your browser and navigate to:
 
 **Cameron Tucker**: Developed the application, including the PHP, JavaScript, HTML, and CSS. Wrote the majority of the SQL queries and managed the overall functionality. Created the setup scripts and validated the application with testing.
 
-**JiaCheng Xue**:  Developed the application part of PHP; testing installment and functionality of application on Windows environment. 
+**JiaCheng Xue**:  Developed the part of the application PHP; testing installment and functionality of application on Windows environment.
 
 **Saleh Zakzok**: Tested the application once completed by testing edge cases and attempting to break the application.
